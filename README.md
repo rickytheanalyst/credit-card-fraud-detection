@@ -28,14 +28,25 @@ In this project, I performed end-to-end exploratory data analysis and fraud patt
 - Common Table Expressions (CTEs)
 
 ---
-
 ## 📂 Dataset
 
-- **Source:** Kaggle – Credit Card Fraud Detection
+This project uses the **Credit Card Fraud Detection** dataset provided by the Machine Learning Group (ULB) and made available on Kaggle.
+
+- **Dataset:** Credit Card Fraud Detection
+- **Source:** Kaggle
+- **Link:** https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
+
+### Dataset Summary
+
 - **Total Transactions:** 284,807
+- **Fraudulent Transactions:** 492
+- **Legitimate Transactions:** 284,315
 - **Features:** 31
-- **Fraud Transactions:** 492
-- **Fraud Rate:** ~0.17%
+- **Target Variable:** `Class`
+  - `0` → Legitimate Transaction
+  - `1` → Fraudulent Transaction
+
+> **Note:** The original dataset contains anonymized features (`V1`–`V28`) generated using Principal Component Analysis (PCA) to protect sensitive customer information.
 
 Dataset contains:
 
