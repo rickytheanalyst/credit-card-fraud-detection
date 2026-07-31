@@ -1,0 +1,8 @@
+GO WITH THE BELOW ORDER:
+------------------------
+
+1. table creation and rows insertion
+2. data validation
+3. data manipulation
+4. EDA
+5. business quesitions
