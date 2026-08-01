@@ -1,6 +1,8 @@
 -- ============================================================
 -- PROJECT: Credit Card Fraud Detectio
 -- Table  : transactions
+
+-- NOTE : You can find the dataset link in ReadMe File
 -- ============================================================
 
 CREATE DATABASE CreditCardFraudDetection;
