@@ -144,38 +144,55 @@ FROM transactions;
 SELECT 'V1' AS feature,
        ROUND(AVG(CASE WHEN Class = 1 THEN V1 END), 4) AS avg_fraud,
        ROUND(AVG(CASE WHEN Class = 0 THEN V1 END), 4) AS avg_legit,
-       ROUND(ABS(AVG(CASE WHEN Class = 1 THEN V1 END)
-                 - AVG(CASE WHEN Class = 0 THEN V1 END)), 4) AS divergence
+       ROUND(
+           ABS(AVG(CASE WHEN Class = 1 THEN V1 END)
+             - AVG(CASE WHEN Class = 0 THEN V1 END)),
+           4) AS divergence
 FROM   transactions
+
 UNION ALL
+
 SELECT 'V2',
-       ROUND(AVG(CASE WHEN Class = 1 THEN V2 END), 4),
-       ROUND(AVG(CASE WHEN Class = 0 THEN V2 END), 4),
-       ROUND(ABS(AVG(CASE WHEN Class = 1 THEN V2 END)
-                 - AVG(CASE WHEN Class = 0 THEN V2 END)), 4)
+       ROUND(AVG(CASE WHEN Class = 1 THEN V2 END), 4) AS avg_fraud,
+       ROUND(AVG(CASE WHEN Class = 0 THEN V2 END), 4) AS avg_legit,
+       ROUND(
+           ABS(AVG(CASE WHEN Class = 1 THEN V2 END)
+             - AVG(CASE WHEN Class = 0 THEN V2 END)),
+           4) AS divergence
 FROM   transactions
+
 UNION ALL
+
 SELECT 'V3',
-       ROUND(AVG(CASE WHEN Class = 1 THEN V3 END), 4),
-       ROUND(AVG(CASE WHEN Class = 0 THEN V3 END), 4),
-       ROUND(ABS(AVG(CASE WHEN Class = 1 THEN V3 END)
-                 - AVG(CASE WHEN Class = 0 THEN V3 END)), 4)
+       ROUND(AVG(CASE WHEN Class = 1 THEN V3 END), 4) AS avg_fraud,
+       ROUND(AVG(CASE WHEN Class = 0 THEN V3 END), 4) AS avg_legit,
+       ROUND(
+           ABS(AVG(CASE WHEN Class = 1 THEN V3 END)
+             - AVG(CASE WHEN Class = 0 THEN V3 END)),
+           4) AS divergence
 FROM   transactions
+
 UNION ALL
+
 SELECT 'V4',
-       ROUND(AVG(CASE WHEN Class = 1 THEN V4 END), 4),
-       ROUND(AVG(CASE WHEN Class = 0 THEN V4 END), 4),
-       ROUND(ABS(AVG(CASE WHEN Class = 1 THEN V4 END)
-                 - AVG(CASE WHEN Class = 0 THEN V4 END)), 4)
+       ROUND(AVG(CASE WHEN Class = 1 THEN V4 END), 4) AS avg_fraud,
+       ROUND(AVG(CASE WHEN Class = 0 THEN V4 END), 4) AS avg_legit,
+       ROUND(
+           ABS(AVG(CASE WHEN Class = 1 THEN V4 END)
+             - AVG(CASE WHEN Class = 0 THEN V4 END)),
+           4) AS divergence
 FROM   transactions
+
 UNION ALL
+
 SELECT 'V5',
-       ROUND(AVG(CASE WHEN Class = 1 THEN V5 END), 4),
-       ROUND(AVG(CASE WHEN Class = 0 THEN V5 END), 4),
-       ROUND(ABS(AVG(CASE WHEN Class = 1 THEN V5 END)
-                 - AVG(CASE WHEN Class = 0 THEN V5 END)), 4)
-FROM   transactions
-ORDER  BY divergence DESC;
+       ROUND(AVG(CASE WHEN Class = 1 THEN V5 END), 4) AS avg_fraud,
+       ROUND(AVG(CASE WHEN Class = 0 THEN V5 END), 4) AS avg_legit,
+       ROUND(
+           ABS(AVG(CASE WHEN Class = 1 THEN V5 END)
+             - AVG(CASE WHEN Class = 0 THEN V5 END)),
+           4) AS divergence
+FROM   transactions;
 
 -- =======================
 -- LEVEL 3 — ADVANCED 
@@ -200,16 +217,16 @@ velocity AS
               t1.Time,
               t1.Amount,
 
-              COUNT(t1.transaction_id) AS transaction_velocity,
+              COUNT(t2.transaction_id) AS transaction_velocity,
 
               CASE 
-                  WHEN COUNT(t1.transaction_id) > 5 THEN 'High Velocity'
+                  WHEN COUNT(t2.transaction_id) > 5 THEN 'High Velocity'
                   ELSE 'Normal'
               END AS velocity_flag
 
     FROM      transactions_with_id t1
     LEFT JOIN transactions_with_id t2
-    ON        t1.Time BETWEEN t1.Time - 600 AND t1.Time
+    ON        t2.Time BETWEEN t1.Time - 600 AND t1.Time
     AND       t2.transaction_id <> t1.transaction_id
 
     GROUP BY  t1.transaction_id,
@@ -220,52 +237,106 @@ velocity AS
 SELECT   *
 FROM     velocity
 WHERE    transaction_velocity > 5
-ORDER BY transaction_velocity;
+ORDER BY transaction_velocity
 ----------------------------------------------------------------------------------------------
 -- 11.  Build a multi-signal fraud score (0–100) using weighted CASE WHEN logic across at 
 --      least 4 signals: amount tier, time-of-day risk, velocity score, and V-feature anomaly. 
 --      Return the top 100 highest-scored transactions and show how many are actually Class = 1
 
-WITH scored AS (
-    SELECT Time, Amount, Class,
-           CAST(Time / 3600 AS INT) % 24 AS hour_of_day,
-           -- Signal 1: Amount tier (0-30 pts)
-           CASE
-               WHEN Amount > 500  THEN 30
-               WHEN Amount > 200  THEN 20
-               WHEN Amount < 1    THEN 15
-               ELSE 5
-           END AS amount_score,
-           -- Signal 2: Time of day risk (0-30 pts)
-           CASE
-               WHEN CAST(Time / 3600 AS INT) % 24 BETWEEN 0 AND 4  THEN 30
-               WHEN CAST(Time / 3600 AS INT) % 24 BETWEEN 22 AND 23 THEN 20
-               ELSE 5
-           END AS time_score,
-           -- Signal 3: V1 anomaly (0-20 pts) — highly divergent feature
-           CASE
-               WHEN V1 < -2 THEN 20
-               WHEN V1 < -1 THEN 10
-               ELSE 0
-           END AS v1_score,
-           -- Signal 4: V3 anomaly (0-20 pts)
-           CASE
-               WHEN V3 > 2 THEN 20
-               WHEN V3 > 1 THEN 10
-               ELSE 0
-           END AS v3_score
+WITH transaction_with_id AS
+(
+    SELECT *,
+           ROW_NUMBER() OVER (ORDER BY [Time]) AS transaction_id
     FROM   transactions
+),
+
+velocity AS
+(
+    SELECT    t1.transaction_id,
+
+              COUNT(t1.transaction_id) AS transaction_velocity
+    FROM      transaction_with_id t1
+    LEFT JOIN transaction_with_id t2
+    ON        t2.[Time] BETWEEN t1.[Time] - 600 AND t1.[Time]
+              AND 
+              t2.transaction_id <> t1.transaction_id
+    GROUP BY  t1.transaction_id
+),
+
+scored AS
+(
+    SELECT    t.transaction_id,
+              t.[Time],
+              t.Amount,
+              t.Class,
+              t.V1,
+              t.transaction_velocity,
+              CAST(t.[Time] / 3600 AS INT) % 24 AS hour_of_day,
+
+              --------------------------------------------------
+              -- Signal 1 : Amount Tier (0-30)
+              --------------------------------------------------
+              CASE
+                  WHEN t.Amount > 500 THEN 30
+                  WHEN t.Amount > 200 THEN 20
+                  WHEN t.Amount < 1   THEN 15
+                  ELSE 5
+              END AS amount_score,
+
+              --------------------------------------------------
+              -- Signal 2 : Time Risk (0-20)
+              --------------------------------------------------
+              CASE 
+                  WHEN CAST(t.[Time] / 3600 AS INT) % 24 BETWEEN 0 AND 5 THEN 20
+                  WHEN CAST(t.[Time] / 3600 AS INT) % 24 BETWEEN 22 AND 23 THEN 10
+                  ELSE 5
+              END AS time_score,
+
+              --------------------------------------------------
+              -- Signal 3 : Velocity Score (0-30)
+              --------------------------------------------------
+              CASE
+                  WHEN v.transaction_velocity > 10 THEN 30
+                  WHEN v.transaction_velocity > 5  THEN 20
+                  WHEN v.transaction_velocity > 2  THEN 10
+                  ELSE 0
+              END AS velocity_score,
+
+              --------------------------------------------------
+              -- Signal 4 : V1 Feature Anomaly (0-20)
+              --------------------------------------------------
+              CASE 
+                  WHEN t.V1 < -2 THEN 20
+                  WHEN t.V1 < -1 THEN 10
+                  ELSE 0
+              END AS v1_score
+
+    FROM      transaction_with_id t 
+    LEFT JOIN velocity v
+    ON        t.transaction_id = v.transaction_id
 )
-SELECT Time, Amount, Class,
-       amount_score, time_score, v1_score, v3_score,
-       amount_score + time_score + v1_score + v3_score AS fraud_risk_score,
-       CASE
-           WHEN amount_score + time_score + v1_score + v3_score >= 70 THEN '🔴 BLOCK'
-           WHEN amount_score + time_score + v1_score + v3_score >= 40 THEN '🟡 REVIEW'
-           ELSE '🟢 PASS'
-       END AS decision
-FROM   scored
-ORDER  BY fraud_risk_score DESC;
+SELECT   TOP 100
+         transaction_id,
+         Time,
+         Class,
+         Amount,
+
+         transaction_velocity,
+
+         amount_score
+         + time_score
+         + velocity_score
+         + v1_score
+             AS fraud_risk_score,
+       
+         CASE 
+             WHEN amount_score + time_score + velocity_score + v1_score >= 70 THEN 'BLOCK'
+             WHEN amount_score + time_score + velocity_score + v1_score >= 40 THEN 'REVIEW'
+             ELSE 'PASS'
+         END AS decision
+
+FROM     scored
+ORDER BY fraud_risk_score DESC;
 -----------------------------------------------------------------------------------------
 -- 12. Write a confusion matrix query: given a threshold rule (e.g., Amount > $200 AND hour 
 --     between 0–5), compute True Positives, False Positives, True Negatives, and False 
