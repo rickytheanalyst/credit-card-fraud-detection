@@ -186,18 +186,41 @@ ORDER  BY divergence DESC;
 --    (Time window). Flag transactions where velocity > 5 as suspicious. What is the 
 --    fraud rate among high-velocity transactions?
 
-SELECT t1.rowid     AS txn_id,
-       t1.Time,
-       t1.Amount,
-       t1.Class,
-       COUNT(t2.rowid)                                                AS txns_in_600s_window,
-       CASE WHEN COUNT(t2.rowid) > 3 THEN 'HIGH VELOCITY' ELSE 'Normal' END AS velocity_flag
-FROM   transactions t1
-LEFT   JOIN transactions t2
-       ON  t2.Time BETWEEN t1.Time - 600 AND t1.Time
-       AND t2.rowid <> t1.rowid
-GROUP  BY t1.rowid
-ORDER  BY txns_in_600s_window DESC;
+WITH transactions_with_id AS
+(
+    SELECT *,
+           ROW_NUMBER() OVER (Order BY [Time]) AS transaction_id
+    FROM   transactions
+),
+
+velocity AS
+(
+    SELECT    t1.transaction_id,
+              t1.Class,
+              t1.Time,
+              t1.Amount,
+
+              COUNT(t1.transaction_id) AS transaction_velocity,
+
+              CASE 
+                  WHEN COUNT(t1.transaction_id) > 5 THEN 'High Velocity'
+                  ELSE 'Normal'
+              END AS velocity_flag
+
+    FROM      transactions_with_id t1
+    LEFT JOIN transactions_with_id t2
+    ON        t1.Time BETWEEN t1.Time - 600 AND t1.Time
+    AND       t2.transaction_id <> t1.transaction_id
+
+    GROUP BY  t1.transaction_id,
+              t1.Class,
+              t1.Time,
+              t1.Amount
+)
+SELECT   *
+FROM     velocity
+WHERE    transaction_velocity > 5
+ORDER BY transaction_velocity;
 ----------------------------------------------------------------------------------------------
 -- 11.  Build a multi-signal fraud score (0–100) using weighted CASE WHEN logic across at 
 --      least 4 signals: amount tier, time-of-day risk, velocity score, and V-feature anomaly. 
