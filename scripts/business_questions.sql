@@ -1,6 +1,13 @@
+-- ============================================================
+-- PROJECT: Credit Card Fraud Detection
+-- Table  : transactions
 
+-- NOTE : You can find the dataset link in ReadMe File
+-- ============================================================
+
+-- =======================
 -- Level - 1: Foundational
---========================
+-- =======================
 
 -- 1. What is the total transaction count and overall fraud rate (Class = 1 as % of total)?
 
@@ -56,9 +63,9 @@ GROUP BY
     END
 ORDER BY MIN(Amount);
 
---=========================
+-- ======================= 
 -- Level - 2: Intermediate
---=========================
+-- =======================
 
 -- 5. Convert the Time column (seconds) into hour-of-day buckets (0–23). Which hours have 
 --    the highest fraud rate? Which have the highest absolute fraud count?
@@ -352,3 +359,5 @@ SELECT total_flagged,
        ROUND(fraud_caught * 100.0 / NULLIF(total_fraud, 0), 2)       AS fraud_capture_rate_pct,
        ROUND(false_positives * 100.0 / NULLIF(total_flagged, 0), 2)  AS false_positive_rate_pct
 FROM   stage4_metrics;
+
+
