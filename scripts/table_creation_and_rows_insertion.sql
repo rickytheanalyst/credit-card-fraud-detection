@@ -1,3 +1,8 @@
+-- ============================================================
+-- PROJECT: Credit Card Fraud Detectio
+-- Table  : transactions
+-- ============================================================
+
 CREATE DATABASE CreditCardFraudDetection;
 
 USE CreditCardFraudDetection;
@@ -37,7 +42,7 @@ CREATE TABLE transactions (
 );
 
 BULK INSERT transactions
-FROM 'C:\Users\Ricky Joy\Desktop\MY PC\Credit Card Fraud Detection(SQL)\Dataset\creditcard.csv'  -- upload your file path here
+FROM 'C:\Temp\creditcard.csv'  -- upload your file path here
 WITH
 (
     FORMAT = 'CSV',
